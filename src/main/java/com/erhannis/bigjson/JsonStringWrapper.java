@@ -20,16 +20,38 @@ public class JsonStringWrapper {
     this.obj = obj;
   }
 
-  private static String calcString(Object obj) {
+  public static String calcString(Object obj) {
     if (obj instanceof JSONArray) {
       return ("+ [" + ((JSONArray) obj).size() + "]");
     } else if (obj instanceof JSONObject) {
-      return ("+ {" + ((JSONObject) obj).size() + "}");
+      return ("+ {" + ((JSONObject) obj).size() + "}" + checkTab((JSONObject)obj));
     } else if (obj instanceof Map.Entry) {
       return ("\"" + ((Map.Entry) obj).getKey() + "\" : " + calcString(((Map.Entry) obj).getValue()));
     } else {
       return ("" + obj);
     }
+  }
+
+  public static String checkTab(JSONObject obj) {
+    tryblock:
+    try {
+      Object o;
+      o = obj.entrySet().stream().filter(e -> "entries".equals(((Map.Entry) e).getKey())).map(e -> ((Map.Entry) e).getValue()).findFirst().orElse(null);
+      if (o == null || !(o instanceof JSONArray)) {
+        return "";
+      }
+      JSONArray ja = (JSONArray) o;
+      int i = ja.size() - 1;
+      Object o2 = ja.get(i);
+      if (o2 instanceof JSONObject) {
+        Object title = ((JSONObject) o2).entrySet().stream().filter(e -> "title".equals(((Map.Entry) e).getKey())).map(e -> ((Map.Entry) e).getValue()).findFirst().orElse(null);
+        Object url = ((JSONObject) o2).entrySet().stream().filter(e -> "url".equals(((Map.Entry) e).getKey())).map(e -> ((Map.Entry) e).getValue()).findFirst().orElse(null);
+        return " - " + title + " @ " + url;
+      }
+    } catch (Throwable t) {
+      //t.printStackTrace();
+    }
+    return "";
   }
 
   @Override

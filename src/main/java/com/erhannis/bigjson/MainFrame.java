@@ -20,6 +20,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -128,6 +129,9 @@ public class MainFrame extends javax.swing.JFrame {
                 //????
               }
               updateList();
+              if (sels.length == 1 && listModel.size() > sels[0]) {
+                jList1.setSelectedIndex(sels[0]);
+              }
             }
             break;
         }
@@ -152,6 +156,8 @@ public class MainFrame extends javax.swing.JFrame {
     bntPaste = new javax.swing.JButton();
     btnRelayer = new javax.swing.JButton();
     btnRetab = new javax.swing.JButton();
+    btnDeimage = new javax.swing.JButton();
+    btnUnique = new javax.swing.JButton();
     jPanel2 = new javax.swing.JPanel();
     jScrollPane1 = new javax.swing.JScrollPane();
     jList1 = new javax.swing.JList<>();
@@ -203,6 +209,20 @@ public class MainFrame extends javax.swing.JFrame {
       }
     });
 
+    btnDeimage.setText("Deimage");
+    btnDeimage.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        btnDeimageActionPerformed(evt);
+      }
+    });
+
+    btnUnique.setText("Unique");
+    btnUnique.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        btnUniqueActionPerformed(evt);
+      }
+    });
+
     javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
     jPanel1.setLayout(jPanel1Layout);
     jPanel1Layout.setHorizontalGroup(
@@ -219,7 +239,9 @@ public class MainFrame extends javax.swing.JFrame {
             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
             .addComponent(bntPaste))
           .addComponent(btnRelayer)
-          .addComponent(btnRetab))
+          .addComponent(btnRetab)
+          .addComponent(btnDeimage)
+          .addComponent(btnUnique))
         .addContainerGap(42, Short.MAX_VALUE))
     );
     jPanel1Layout.setVerticalGroup(
@@ -233,7 +255,11 @@ public class MainFrame extends javax.swing.JFrame {
         .addComponent(btnRelayer)
         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
         .addComponent(btnRetab)
-        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 201, Short.MAX_VALUE)
+        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+        .addComponent(btnDeimage)
+        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+        .addComponent(btnUnique)
+        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 131, Short.MAX_VALUE)
         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
           .addComponent(btnLoad)
           .addComponent(btnSave))
@@ -330,6 +356,14 @@ public class MainFrame extends javax.swing.JFrame {
   private void btnRetabActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRetabActionPerformed
     remapArray(this::retab);
   }//GEN-LAST:event_btnRetabActionPerformed
+
+  private void btnDeimageActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDeimageActionPerformed
+    remapArray(this::deimage);
+  }//GEN-LAST:event_btnDeimageActionPerformed
+
+  private void btnUniqueActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUniqueActionPerformed
+    remapArray(this::unique);
+  }//GEN-LAST:event_btnUniqueActionPerformed
 
   private void load(File f) throws FileNotFoundException, IOException, ParseException {
     JSONObject obj;
@@ -480,6 +514,41 @@ public class MainFrame extends javax.swing.JFrame {
     }    
   }
   
+  private void deimage(JSONArray target) {
+    LinkedList<Object> pending = new LinkedList<>();
+    HashSet<Object> done = new HashSet<>();
+    pending.add(target);
+    done.add(target);
+    while (!pending.isEmpty()) {
+      Object obj = pending.removeFirst();
+      if (obj instanceof JSONArray) {
+        JSONArray arr = (JSONArray) obj;
+        for (int i = 0; i < arr.size(); i++) {
+          Object child = arr.get(i);
+          if (!done.contains(child)) {
+            pending.addLast(child);
+            done.add(child);
+          }
+          if (child instanceof String && ((String)child).startsWith("data:image")) {
+            arr.set(i, "");
+          }
+        }
+      } else if (obj instanceof JSONObject) {
+        JSONObject jobj = (JSONObject) obj;
+        for (Map.Entry child : ((Set<Map.Entry>)jobj.entrySet())) {
+          if (!done.contains(child.getValue())) {
+            pending.addLast(child.getValue());
+            done.add(child);
+          }
+          if (child.getValue() instanceof String && ((String)child.getValue()).startsWith("data:image")) {
+            child.setValue("");
+          }
+        }
+      }
+    }
+    System.out.println("processed objects: " + done.size());
+  }
+
   private void relayer(JSONArray target) {
     LinkedList<Object> pending = new LinkedList<>();
     HashSet<Object> done = new HashSet<>();
@@ -638,6 +707,59 @@ public class MainFrame extends javax.swing.JFrame {
     System.out.println("Arrays NOT MODIFIED: " + fc);
   }
 
+  private void deimage(JSONArray target) {
+    LinkedList<Object> pending = new LinkedList<>();
+    HashSet<Object> done = new HashSet<>();
+    pending.add(target);
+    done.add(target);
+    while (!pending.isEmpty()) {
+      Object obj = pending.removeFirst();
+      if (obj instanceof JSONArray) {
+        JSONArray arr = (JSONArray) obj;
+        for (int i = 0; i < arr.size(); i++) {
+          Object child = arr.get(i);
+          if (!done.contains(child)) {
+            pending.addLast(child);
+            done.add(child);
+          }
+          if (child instanceof String && ((String)child).startsWith("data:image")) {
+            arr.set(i, "");
+          }
+        }
+      } else if (obj instanceof JSONObject) {
+        JSONObject jobj = (JSONObject) obj;
+        for (Map.Entry child : ((Set<Map.Entry>)jobj.entrySet())) {
+          if (!done.contains(child.getValue())) {
+            pending.addLast(child.getValue());
+            done.add(child);
+          }
+          if (child.getValue() instanceof String && ((String)child.getValue()).startsWith("data:image")) {
+            child.setValue("");
+          }
+        }
+      }
+    }
+    System.out.println("processed objects: " + done.size());
+  }
+  
+  private void unique(JSONArray target) {
+    int count = target.size();
+    int repeats = 0;
+    HashSet<String> strings = new HashSet<>();
+    Iterator it = target.iterator();
+    while (it.hasNext()) {
+      Object obj = it.next();
+      String str = JsonStringWrapper.calcString(obj);
+      if (!str.contains("asdfasdfafsfawefasdfzsdc")) {
+        if (!strings.add(str)) {
+          repeats++;
+        }
+      }
+    }
+    System.out.println("processed objects: " + count);
+    System.out.println("repeats: " + repeats);
+  }
+
   /**
    * @param args the command line arguments
    */
@@ -676,10 +798,12 @@ public class MainFrame extends javax.swing.JFrame {
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JButton bntPaste;
   private javax.swing.JButton btnCopy;
+  private javax.swing.JButton btnDeimage;
   private javax.swing.JButton btnLoad;
   private javax.swing.JButton btnRelayer;
   private javax.swing.JButton btnRetab;
   private javax.swing.JButton btnSave;
+  private javax.swing.JButton btnUnique;
   private javax.swing.JList<JsonStringWrapper> jList1;
   private javax.swing.JPanel jPanel1;
   private javax.swing.JPanel jPanel2;
