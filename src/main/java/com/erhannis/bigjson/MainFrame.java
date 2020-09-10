@@ -5,6 +5,7 @@
  */
 package com.erhannis.bigjson;
 
+import com.erhannis.mathnstuff.FactoryHashMap;
 import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -23,7 +24,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -38,6 +41,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.TransferHandler;
 import org.json.simple.JSONArray;
@@ -158,6 +162,7 @@ public class MainFrame extends javax.swing.JFrame {
     btnRetab = new javax.swing.JButton();
     btnDeimage = new javax.swing.JButton();
     btnUnique = new javax.swing.JButton();
+    btnFind = new javax.swing.JButton();
     jPanel2 = new javax.swing.JPanel();
     jScrollPane1 = new javax.swing.JScrollPane();
     jList1 = new javax.swing.JList<>();
@@ -223,6 +228,13 @@ public class MainFrame extends javax.swing.JFrame {
       }
     });
 
+    btnFind.setText("Find...");
+    btnFind.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        btnFindActionPerformed(evt);
+      }
+    });
+
     javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
     jPanel1.setLayout(jPanel1Layout);
     jPanel1Layout.setHorizontalGroup(
@@ -230,6 +242,7 @@ public class MainFrame extends javax.swing.JFrame {
       .addGroup(jPanel1Layout.createSequentialGroup()
         .addContainerGap()
         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+          .addComponent(btnFind)
           .addGroup(jPanel1Layout.createSequentialGroup()
             .addComponent(btnLoad)
             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -259,7 +272,9 @@ public class MainFrame extends javax.swing.JFrame {
         .addComponent(btnDeimage)
         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
         .addComponent(btnUnique)
-        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 131, Short.MAX_VALUE)
+        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+        .addComponent(btnFind)
+        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 96, Short.MAX_VALUE)
         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
           .addComponent(btnLoad)
           .addComponent(btnSave))
@@ -364,6 +379,20 @@ public class MainFrame extends javax.swing.JFrame {
   private void btnUniqueActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUniqueActionPerformed
     remapArray(this::unique);
   }//GEN-LAST:event_btnUniqueActionPerformed
+
+  private void btnFindActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnFindActionPerformed
+    String s = (String)JOptionPane.showInputDialog(
+                    this,
+                    "Enter regex to select by:",
+                    "Find all and select",
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    null,
+                    "");
+    if (s != null) {
+      selectByRegex(s);
+    }
+  }//GEN-LAST:event_btnFindActionPerformed
 
   private void load(File f) throws FileNotFoundException, IOException, ParseException {
     JSONObject obj;
@@ -706,58 +735,50 @@ public class MainFrame extends javax.swing.JFrame {
     System.out.println("Arrays modified: " + tc);
     System.out.println("Arrays NOT MODIFIED: " + fc);
   }
-
-  private void deimage(JSONArray target) {
-    LinkedList<Object> pending = new LinkedList<>();
-    HashSet<Object> done = new HashSet<>();
-    pending.add(target);
-    done.add(target);
-    while (!pending.isEmpty()) {
-      Object obj = pending.removeFirst();
-      if (obj instanceof JSONArray) {
-        JSONArray arr = (JSONArray) obj;
-        for (int i = 0; i < arr.size(); i++) {
-          Object child = arr.get(i);
-          if (!done.contains(child)) {
-            pending.addLast(child);
-            done.add(child);
-          }
-          if (child instanceof String && ((String)child).startsWith("data:image")) {
-            arr.set(i, "");
-          }
-        }
-      } else if (obj instanceof JSONObject) {
-        JSONObject jobj = (JSONObject) obj;
-        for (Map.Entry child : ((Set<Map.Entry>)jobj.entrySet())) {
-          if (!done.contains(child.getValue())) {
-            pending.addLast(child.getValue());
-            done.add(child);
-          }
-          if (child.getValue() instanceof String && ((String)child.getValue()).startsWith("data:image")) {
-            child.setValue("");
-          }
-        }
-      }
-    }
-    System.out.println("processed objects: " + done.size());
-  }
   
   private void unique(JSONArray target) {
     int count = target.size();
     int repeats = 0;
-    HashSet<String> strings = new HashSet<>();
+    FactoryHashMap<String, Integer> strings = new FactoryHashMap<>((input) -> {
+      return 0;
+    });
     Iterator it = target.iterator();
+    List<String> ignores = Arrays.asList(new String[]{"about:newtab", "about:sessionrestore"});
     while (it.hasNext()) {
       Object obj = it.next();
-      String str = JsonStringWrapper.calcString(obj);
-      if (!str.contains("asdfasdfafsfawefasdfzsdc")) {
-        if (!strings.add(str)) {
+      String str = (obj instanceof JSONObject) ? JsonStringWrapper.checkTab((JSONObject)obj) : JsonStringWrapper.calcString(obj);
+      if ((ignores.stream().anyMatch(s -> str.contains(s)) || str.isEmpty())) {
+        // Is exempt
+      } else {
+        // Is not exempt
+        if (strings.containsKey(str)) {
+          // Is a repeat
           repeats++;
+          it.remove();
+        } else {
+          // Is not a repeat
         }
+        strings.put(str, strings.get(str)+1);
       }
     }
     System.out.println("processed objects: " + count);
     System.out.println("repeats: " + repeats);
+    strings.entrySet().stream().sorted((a,b) -> Integer.compare(a.getValue(), b.getValue())).forEach(e -> System.out.println(e.getValue() + " - " + e.getKey()));
+  }
+  
+  private void selectByRegex(String s) {
+    Iterator<JsonStringWrapper> it = listModel.elements().asIterator();
+    int idx = 0;
+    ArrayList<Integer> indices = new ArrayList<>();
+    while (it.hasNext()) {
+      JsonStringWrapper jsw = it.next();
+      if (jsw.toString().matches(s)) {
+        indices.add(idx);
+      }
+      idx++;
+    }
+    jList1.setSelectedIndices(indices.stream().mapToInt(i -> i).toArray());
+    System.out.println("selected " + indices.size() + " elements");
   }
 
   /**
@@ -799,6 +820,7 @@ public class MainFrame extends javax.swing.JFrame {
   private javax.swing.JButton bntPaste;
   private javax.swing.JButton btnCopy;
   private javax.swing.JButton btnDeimage;
+  private javax.swing.JButton btnFind;
   private javax.swing.JButton btnLoad;
   private javax.swing.JButton btnRelayer;
   private javax.swing.JButton btnRetab;
