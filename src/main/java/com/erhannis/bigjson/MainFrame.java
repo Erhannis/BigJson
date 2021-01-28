@@ -21,6 +21,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -767,11 +768,11 @@ public class MainFrame extends javax.swing.JFrame {
   }
   
   private void selectByRegex(String s) {
-    Iterator<JsonStringWrapper> it = listModel.elements().asIterator();
+    Enumeration<JsonStringWrapper> it = listModel.elements();
     int idx = 0;
     ArrayList<Integer> indices = new ArrayList<>();
-    while (it.hasNext()) {
-      JsonStringWrapper jsw = it.next();
+    while (it.hasMoreElements()) {
+      JsonStringWrapper jsw = it.nextElement();
       if (jsw.toString().matches(s)) {
         indices.add(idx);
       }
